@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Decisao do Orcamento</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 24px;">
+    <div style="max-width: 480px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; padding: 24px;">
+        <h2 style="color: #2c3e50;">Ola, <span th:text="${clientName}">Cliente</span>!</h2>
+
+        <p>
+            Orcamento da Ordem de Servico <strong th:text="'#' + ${serviceOrderId}">#0</strong>
+        </p>
+        <p>
+            <strong>Descricao:</strong> <span th:text="${description}">-</span><br/>
+            <strong>Valor estimado:</strong>
+            <span th:text="'R$ ' + ${#numbers.formatDecimal(estimatedAmount, 1, 2)}">R$ 0,00</span>
+        </p>
+
+        <p>O que voce deseja fazer com este orcamento?</p>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <form th:action="@{'/service-orders/' + ${serviceOrderId} + '/budget/APPROVE'(token=${token})}" method="post">
+                <button type="submit" style="background-color: #2e7d32; color: #fff; border: none; padding: 12px 20px; border-radius: 4px;">
+                    Aprovar
+                </button>
+            </form>
+            <form th:action="@{'/service-orders/' + ${serviceOrderId} + '/budget/REJECT'(token=${token})}" method="post">
+                <button type="submit" style="background-color: #c62828; color: #fff; border: none; padding: 12px 20px; border-radius: 4px;">
+                    Recusar
+                </button>
+            </form>
+            <form th:action="@{'/service-orders/' + ${serviceOrderId} + '/budget/CANCEL'(token=${token})}" method="post">
+                <button type="submit" style="background-color: #616161; color: #fff; border: none; padding: 12px 20px; border-radius: 4px;">
+                    Cancelar
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
