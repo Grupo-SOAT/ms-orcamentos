@@ -1,0 +1,96 @@
+name: Deploy Application
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  deploy:
+
+    name: Deploy MS Orçamentos
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build Application
+        run: |
+          mvn clean package
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Configure Image Variables
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+            --query Account \
+            --output text)
+
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com"
+          ECR_REPOSITORY="registry-oficina-mecanica-ms-orcamentos"
+          IMAGE_TAG="${GITHUB_SHA}"
+
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> "$GITHUB_ENV"
+          echo "ECR_REGISTRY=$ECR_REGISTRY" >> "$GITHUB_ENV"
+          echo "ECR_REPOSITORY=$ECR_REPOSITORY" >> "$GITHUB_ENV"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+
+          echo "ECR Image:"
+          echo "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image
+        run: |
+          docker build \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            .
+
+      - name: Push Docker Image
+        run: |
+          docker push \
+            "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Checkout Kubernetes Repository
+        uses: actions/checkout@v4
+        with:
+          repository: Grupo-SOAT/k8s-infra-oficina-mecanica
+          token: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
+          path: k8s-infra
+
+      - name: Update MS Orçamentos Image
+        working-directory: k8s-infra
+        run: |
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+          sed -i "s|^[[:space:]]*image:.*|          image: $IMAGE|" \
+            k8s/deployment-ms-orcamentos.yaml
+
+      - name: Commit and Push Kubernetes Manifest
+        working-directory: k8s-infra
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/deployment-ms-orcamentos.yaml
+
+          git commit \
+            -m "chore: update ms-orcamentos image to ${IMAGE_TAG}"
+
+          git push origin main
