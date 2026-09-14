@@ -84,13 +84,52 @@ jobs:
 
       - name: Commit and Push Kubernetes Manifest
         working-directory: k8s-infra
+        env:
+          GH_TOKEN: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
         run: |
+          set -e
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BRANCH_NAME="chore/update-ms-orcamentos-image-${GITHUB_RUN_ID}"
+
+          echo "Criando branch: ${BRANCH_NAME}"
+          git checkout -b "$BRANCH_NAME"
 
           git add k8s/deployment-ms-orcamentos.yaml
 
           git commit \
             -m "chore: update ms-orcamentos image to ${IMAGE_TAG}"
 
-          git push origin main
+          echo "Enviando branch para o repositório GitOps..."
+          git push origin "$BRANCH_NAME"
+
+          echo "Criando Pull Request..."
+
+          PR_URL=$(gh pr create \
+            --repo Grupo-SOAT/k8s-infra-oficina-mecanica \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "chore: update ms-orcamentos image to ${IMAGE_TAG}" \
+            --body "Atualização automática da imagem Docker do MS Orçamentos.
+
+          Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+          Gerado pelo workflow:
+          ${GITHUB_REPOSITORY}
+
+          Run: ${GITHUB_RUN_ID}")
+
+          echo "Pull Request criado:"
+          echo "$PR_URL"
+
+          echo "Fazendo merge do Pull Request..."
+
+          gh pr merge "$PR_URL" \
+            --repo Grupo-SOAT/k8s-infra-oficina-mecanica \
+            --merge \
+            --delete-branch
+
+          echo "Pull Request mergeado com sucesso."
+          echo "Branch ${BRANCH_NAME} excluída."
