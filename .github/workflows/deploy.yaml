@@ -92,7 +92,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          echo "Configurando autenticação do Git..."
+
+          git remote set-url origin \
+            "https://x-access-token:${{ secrets.PAT_REPO_INFRA_LAMBDA }}@github.com/Grupo-SOAT/k8s-infra-oficina-mecanica.git"
+
           echo "Criando branch..."
+
           git checkout -b "$BRANCH_NAME"
 
           echo "Atualizando imagem..."
@@ -100,8 +106,10 @@ jobs:
           sed -i "s|^[[:space:]]*image:.*|          image: ${IMAGE}|" \
             "$CONFIG_FILE"
 
-          echo "Alterações:"
+          echo "Alterações realizadas:"
           git diff -- "$CONFIG_FILE"
+
+          echo "Criando commit..."
 
           git add "$CONFIG_FILE"
 
