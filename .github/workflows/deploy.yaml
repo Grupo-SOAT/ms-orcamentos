@@ -67,42 +67,49 @@ jobs:
           docker push \
             "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Checkout Kubernetes Repository
-        uses: actions/checkout@v4
-        with:
-          repository: Grupo-SOAT/k8s-infra-oficina-mecanica
-          token: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
-          path: k8s-infra
-
-      - name: Update MS Orçamentos Image
-        working-directory: k8s-infra
-        run: |
-          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-          sed -i "s|^[[:space:]]*image:.*|          image: $IMAGE|" \
-            k8s/deployment-ms-orcamentos.yaml
-
-      - name: Commit and Push Kubernetes Manifest
-        working-directory: k8s-infra
+      - name: Update and Merge Kubernetes Manifest
         env:
           GH_TOKEN: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
         run: |
           set -e
 
+          echo "Clonando repositório GitOps..."
+
+          git clone \
+            https://x-access-token:${{ secrets.PAT_REPO_INFRA_LAMBDA }}@github.com/Grupo-SOAT/k8s-infra-oficina-mecanica.git \
+            k8s-infra
+
+          cd k8s-infra
+
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          CONFIG_FILE="k8s/deployment-ms-orcamentos.yaml"
+          BRANCH_NAME="chore/update-ms-orcamentos-image-${GITHUB_RUN_ID}"
+
+          echo "Imagem: ${IMAGE}"
+          echo "Arquivo: ${CONFIG_FILE}"
+          echo "Branch: ${BRANCH_NAME}"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          BRANCH_NAME="chore/update-ms-orcamentos-image-${GITHUB_RUN_ID}"
-
-          echo "Criando branch: ${BRANCH_NAME}"
+          echo "Criando branch..."
           git checkout -b "$BRANCH_NAME"
 
-          git add k8s/deployment-ms-orcamentos.yaml
+          echo "Atualizando imagem..."
+
+          sed -i "s|^[[:space:]]*image:.*|          image: ${IMAGE}|" \
+            "$CONFIG_FILE"
+
+          echo "Alterações:"
+          git diff -- "$CONFIG_FILE"
+
+          git add "$CONFIG_FILE"
 
           git commit \
             -m "chore: update ms-orcamentos image to ${IMAGE_TAG}"
 
-          echo "Enviando branch para o repositório GitOps..."
+          echo "Enviando branch..."
+
           git push origin "$BRANCH_NAME"
 
           echo "Criando Pull Request..."
@@ -114,12 +121,13 @@ jobs:
             --title "chore: update ms-orcamentos image to ${IMAGE_TAG}" \
             --body "Atualização automática da imagem Docker do MS Orçamentos.
 
-          Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+          Image: ${IMAGE}
 
-          Gerado pelo workflow:
+          Gerado pelo repositório:
           ${GITHUB_REPOSITORY}
 
-          Run: ${GITHUB_RUN_ID}")
+          Workflow run:
+          ${GITHUB_RUN_ID}")
 
           echo "Pull Request criado:"
           echo "$PR_URL"
