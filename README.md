@@ -5,7 +5,6 @@ Microsserviço responsável pelo processamento de **orçamentos**, envio de noti
 O serviço faz parte da arquitetura distribuída do sistema **Oficina Mecânica** e foi extraído do monólito para tratar de forma independente os fluxos relacionados a orçamento e comunicação com o cliente.
 
 Desenvolvido em **Java 21**, **Spring Boot 4** e seguindo os princípios de **DDD** e **Arquitetura Hexagonal**.
-
 ---
 
 ## 📋 Sumário
