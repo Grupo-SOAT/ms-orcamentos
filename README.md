@@ -560,9 +560,10 @@ O projeto possui GitHub Actions:
 └── deploy.yaml
 ```
 
-O pipeline é responsável por automatizar o processo de entrega da aplicação.
-
-No fluxo AWS, a imagem Docker é construída, publicada no ECR e posteriormente implantada no Kubernetes através do fluxo GitOps.
+O pipeline é disparado manualmente (`workflow_dispatch`): constrói a imagem
+Docker, publica no Amazon ECR com a tag do commit e abre/mergeia um Pull
+Request no repositório `k8s-infra-oficina-mecanica` atualizando a imagem do
+microsserviço. O Argo CD sincroniza a alteração no cluster.
 
 ---
 
