@@ -565,6 +565,8 @@ Docker, publica no Amazon ECR com a tag do commit e abre/mergeia um Pull
 Request no repositório `k8s-infra-oficina-mecanica` atualizando a imagem do
 microsserviço. O Argo CD sincroniza a alteração no cluster.
 
+Configuração necessária (organização): variáveis `AWS_REGION`, `GIT_INFRA_REPO_URL`, `GIT_INFRA_BRANCH`; secrets `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `PAT_REPO_INFRA_LAMBDA`.
+
 ---
 
 # ☁️ Deploy na AWS
