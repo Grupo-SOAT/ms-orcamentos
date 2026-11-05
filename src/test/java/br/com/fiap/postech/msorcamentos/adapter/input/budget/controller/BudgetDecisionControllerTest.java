@@ -109,8 +109,15 @@ class BudgetDecisionControllerTest {
     }
 
     @Test
-    void should_render_invalid_token_page_when_token_invalid() throws Exception {
-        doThrow(new InvalidOrExpiredBudgetTokenException(1L))
+    void should_return_404_when_token_is_valid_but_service_order_is_missing() throws Exception {
+        when(serviceOrderReadPort.findSummaryById(99L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/service-orders/99/budget/decision-page").param("token", TOKEN))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void should_render_invalid_token_page_when_token_invalid() throws Exception {        doThrow(new InvalidOrExpiredBudgetTokenException(1L))
                 .when(registerBudgetDecisionUseCase).validateToken(1L, TOKEN);
 
         mockMvc.perform(get("/service-orders/1/budget/decision-page").param("token", TOKEN))
