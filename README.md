@@ -691,7 +691,7 @@ O microsserviço possui ciclo de build, testes e deploy independente.
 
 # 📚 Projeto
 
-Este microsserviço faz parte da solução **Oficina Mecânica – Tech Challenge Fase 3**, desenvolvida pelo **Grupo-SOAT**.
+Este microsserviço faz parte da solução **Oficina Mecânica**, desenvolvida pelo **Grupo-SOAT**.
 
 ---
 
