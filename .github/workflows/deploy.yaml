@@ -16,6 +16,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Validate required configuration
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          INFRA_REPO_URL: ${{ vars.GIT_INFRA_REPO_URL }}
+          INFRA_BRANCH: ${{ vars.GIT_INFRA_BRANCH }}
+        run: |
+          : "${AWS_REGION:?Configure a variável AWS_REGION}"
+          : "${INFRA_REPO_URL:?Configure a variável GIT_INFRA_REPO_URL}"
+          : "${INFRA_BRANCH:?Configure a variável GIT_INFRA_BRANCH}"
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -33,7 +43,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Configure Image Variables
         run: |
@@ -41,7 +51,7 @@ jobs:
             --query Account \
             --output text)
 
-          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com"
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com"
           ECR_REPOSITORY="registry-oficina-mecanica-ms-orcamentos"
           IMAGE_TAG="${GITHUB_SHA}"
 
@@ -70,13 +80,20 @@ jobs:
       - name: Update and Merge Kubernetes Manifest
         env:
           GH_TOKEN: ${{ secrets.PAT_REPO_INFRA_LAMBDA }}
+          INFRA_REPO_URL: ${{ vars.GIT_INFRA_REPO_URL }}
+          INFRA_BRANCH: ${{ vars.GIT_INFRA_BRANCH }}
         run: |
           set -e
+
+          INFRA_REPO="${INFRA_REPO_URL#https://github.com/}"
+          INFRA_REPO="${INFRA_REPO%.git}"
+          INFRA_REPO="${INFRA_REPO%/}"
 
           echo "Clonando repositório GitOps..."
 
           git clone \
-            https://x-access-token:${{ secrets.PAT_REPO_INFRA_LAMBDA }}@github.com/Grupo-SOAT/k8s-infra-oficina-mecanica.git \
+            --branch "$INFRA_BRANCH" \
+            "https://x-access-token:${{ secrets.PAT_REPO_INFRA_LAMBDA }}@${INFRA_REPO_URL#https://}" \
             k8s-infra
 
           cd k8s-infra
@@ -95,7 +112,7 @@ jobs:
           echo "Configurando autenticação do Git..."
 
           git remote set-url origin \
-            "https://x-access-token:${{ secrets.PAT_REPO_INFRA_LAMBDA }}@github.com/Grupo-SOAT/k8s-infra-oficina-mecanica.git"
+            "https://x-access-token:${{ secrets.PAT_REPO_INFRA_LAMBDA }}@${INFRA_REPO_URL#https://}"
 
           echo "Criando branch..."
 
@@ -123,8 +140,8 @@ jobs:
           echo "Criando Pull Request..."
 
           PR_URL=$(gh pr create \
-            --repo Grupo-SOAT/k8s-infra-oficina-mecanica \
-            --base main \
+            --repo "$INFRA_REPO" \
+            --base "$INFRA_BRANCH" \
             --head "$BRANCH_NAME" \
             --title "chore: update ms-orcamentos image to ${IMAGE_TAG}" \
             --body "Atualização automática da imagem Docker do MS Orçamentos.
@@ -143,7 +160,7 @@ jobs:
           echo "Fazendo merge do Pull Request..."
 
           gh pr merge "$PR_URL" \
-            --repo Grupo-SOAT/k8s-infra-oficina-mecanica \
+            --repo "$INFRA_REPO" \
             --merge \
             --delete-branch
 
