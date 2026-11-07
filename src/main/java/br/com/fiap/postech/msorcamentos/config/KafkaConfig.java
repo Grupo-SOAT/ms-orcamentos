@@ -79,6 +79,16 @@ public class KafkaConfig {
     }
 
     @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> rawKafkaListenerContainerFactory(
+            ConsumerFactory<String, String> consumerFactory
+    ) {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
+        return factory;
+    }
+
+    @Bean
     public KafkaAdmin kafkaAdmin() {
         Map<String, Object> configs = new HashMap<>();
         configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);

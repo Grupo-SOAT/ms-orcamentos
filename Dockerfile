@@ -9,6 +9,12 @@ RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:21-jdk-alpine
 
+ARG OTEL_AGENT_VERSION=2.31.1
+RUN mkdir -p /otel && wget -q -O /otel/opentelemetry-javaagent.jar \
+    https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/${OTEL_AGENT_VERSION}/opentelemetry-javaagent-${OTEL_AGENT_VERSION}.jar
+
+ENV JAVA_TOOL_OPTIONS="-javaagent:/otel/opentelemetry-javaagent.jar"
+
 WORKDIR /app
 
 COPY --from=builder /app/target/*.jar app.jar
